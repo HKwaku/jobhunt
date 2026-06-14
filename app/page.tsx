@@ -1,101 +1,216 @@
-import Image from "next/image";
+import Link from "next/link";
+import { PageHeader, Card, MatchBadgePill, EmptyState } from "@/components/ui";
+import ConfigBanner from "@/components/ConfigBanner";
+import { getDashboard, type DashboardData } from "@/lib/dashboard";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { btnPrimary, btnSecondary } from "@/lib/styles";
+import type { MatchBadge } from "@/lib/types";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+const MATCH_COLORS: Record<MatchBadge, string> = {
+  Strong: "text-emerald-400",
+  Good: "text-sky-400",
+  Partial: "text-amber-400",
+  Weak: "text-zinc-400",
+};
+
+export default async function DashboardPage() {
+  let data: DashboardData | null = null;
+  let error: string | null = null;
+
+  if (isSupabaseConfigured()) {
+    try {
+      data = await getDashboard();
+    } catch (e) {
+      error = (e as Error).message;
+    }
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Your job search at a glance."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Link href="/jobs" className={btnPrimary}>
+              Run search
+            </Link>
+            <Link href="/contacts" className={btnSecondary}>
+              Add contact
+            </Link>
+            <Link href="/profile" className={btnSecondary}>
+              Update CV
+            </Link>
+          </div>
+        }
+      />
+      <ConfigBanner />
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">
+          {error}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      {!data ? (
+        <EmptyState
+          title="Connect Supabase to see your dashboard"
+          body="Add your Supabase credentials to .env.local, then run the schema in supabase/schema.sql."
+        />
+      ) : (
+        <div className="space-y-6">
+          {/* Match distribution */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold text-zinc-300">
+              CV match distribution
+            </h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {(["Strong", "Good", "Partial", "Weak"] as MatchBadge[]).map((b) => (
+                <Card key={b}>
+                  <p className={`text-3xl font-semibold ${MATCH_COLORS[b]}`}>
+                    {data!.matchDistribution[b]}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-400">{b}</p>
+                </Card>
+              ))}
+            </div>
+            {data.unscored > 0 && (
+              <p className="mt-2 text-xs text-zinc-500">
+                {data.unscored} job{data.unscored === 1 ? "" : "s"} not yet scored.
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Pipelines */}
+            <Card>
+              <h2 className="text-sm font-semibold text-zinc-300">
+                Jobs pipeline
+              </h2>
+              <StatusBars
+                data={data.jobsByStatus}
+                total={data.totalJobs}
+                accent="bg-brand-500"
+              />
+            </Card>
+            <Card>
+              <h2 className="text-sm font-semibold text-zinc-300">
+                Contact pipeline
+              </h2>
+              <StatusBars
+                data={data.contactsByStatus}
+                total={data.totalContacts}
+                accent="bg-sky-500"
+              />
+            </Card>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Top jobs */}
+            <Card>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-zinc-300">
+                  Top matches to action
+                </h2>
+                <Link
+                  href="/jobs"
+                  className="text-xs text-brand-400 hover:underline"
+                >
+                  View all
+                </Link>
+              </div>
+              {data.topJobs.length === 0 ? (
+                <p className="text-sm text-zinc-500">
+                  No scored, un-actioned jobs yet. Run a search to populate this.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {data.topJobs.map((j) => (
+                    <li
+                      key={j.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-zinc-200">{j.title}</p>
+                        <p className="truncate text-xs text-zinc-500">
+                          {[j.company, j.location].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                      <MatchBadgePill score={j.match_score} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            {/* Activity */}
+            <Card>
+              <h2 className="mb-3 text-sm font-semibold text-zinc-300">
+                Recent activity
+              </h2>
+              {data.activity.length === 0 ? (
+                <p className="text-sm text-zinc-500">Nothing yet.</p>
+              ) : (
+                <ul className="space-y-2.5">
+                  {data.activity.map((a, i) => (
+                    <li key={i} className="flex items-start gap-3 text-sm">
+                      <span
+                        className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                          a.kind === "job" ? "bg-brand-500" : "bg-sky-500"
+                        }`}
+                      />
+                      <div className="min-w-0">
+                        <Link
+                          href={a.href}
+                          className="text-zinc-200 hover:underline"
+                        >
+                          {a.label}
+                        </Link>
+                        <span className="text-zinc-500"> — {a.detail}</span>
+                        <p className="text-xs text-zinc-600">
+                          {new Date(a.at).toLocaleString()}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function StatusBars({
+  data,
+  total,
+  accent,
+}: {
+  data: Record<string, number>;
+  total: number;
+  accent: string;
+}) {
+  const entries = Object.entries(data);
+  return (
+    <div className="mt-3 space-y-2">
+      {entries.map(([status, count]) => {
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+        return (
+          <div key={status}>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400">{status}</span>
+              <span className="text-zinc-500">{count}</span>
+            </div>
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+              <div className={`h-full ${accent}`} style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })}
+      {total === 0 && <p className="text-sm text-zinc-500">Nothing here yet.</p>}
     </div>
   );
 }
