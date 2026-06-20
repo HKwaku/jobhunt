@@ -1,5 +1,19 @@
 // Shared data model types for JobHunt.
 
+// A normalized job listing from any external source (Adzuna, Reed, ...).
+// Every source adapter maps its API response to this shape; the search
+// orchestrator de-duplicates by `externalId` and stores `source` on the job.
+export type JobListing = {
+  externalId: string;
+  title: string;
+  company: string | null;
+  location: string | null;
+  salary: string | null;
+  description: string | null;
+  url: string | null;
+  source: string; // e.g. "adzuna", "reed"
+};
+
 export type SearchPreferences = {
   target_roles: string[];
   target_industries: string[];
@@ -134,6 +148,41 @@ export type CvExtraction = {
   summary: string;
 };
 
+// ---- Industry / sector classification (Claude tags each job) ----
+// FS-focused taxonomy with a general "Other" bucket for non-FS roles.
+export const JOB_INDUSTRIES = [
+  "Investment Banking",
+  "Private Equity",
+  "Hedge Fund",
+  "Asset Management",
+  "Venture Capital",
+  "Private Credit",
+  "Wealth Management",
+  "Real Estate",
+  "Insurance",
+  "Banking (Retail & Commercial)",
+  "Fintech",
+  "Professional Services",
+  "Other",
+] as const;
+
+export type JobIndustry = (typeof JOB_INDUSTRIES)[number];
+
+// The subset that counts as "financial services" for the grouped filter option.
+export const FINANCIAL_SERVICES_INDUSTRIES: string[] = [
+  "Investment Banking",
+  "Private Equity",
+  "Hedge Fund",
+  "Asset Management",
+  "Venture Capital",
+  "Private Credit",
+  "Wealth Management",
+  "Real Estate",
+  "Insurance",
+  "Banking (Retail & Commercial)",
+  "Fintech",
+];
+
 export type JobStatus =
   | "New"
   | "Interested"
@@ -162,6 +211,7 @@ export type Job = {
   description: string | null;
   url: string | null;
   source: string | null;
+  industry: string | null;
   match_score: number | null;
   fit_summary: string | null;
   strengths: string[];
@@ -209,6 +259,7 @@ export type JobMatch = {
   fit_summary: string;
   strengths: string[];
   gaps: string[];
+  industry?: string;
 };
 
 export type RelationshipType = "warm" | "cold" | "mutual connection";

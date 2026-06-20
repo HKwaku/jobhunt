@@ -35,6 +35,7 @@ create table if not exists jobs (
   description  text,
   url          text,
   source       text default 'adzuna',
+  industry     text,                       -- Claude-tagged sector (FS taxonomy)
   match_score  integer,
   fit_summary  text,
   strengths    jsonb not null default '[]'::jsonb,
@@ -54,6 +55,7 @@ create unique index if not exists jobs_external_id_key
   on jobs (external_id) where external_id is not null;
 create index if not exists jobs_status_idx on jobs (status);
 create index if not exists jobs_match_score_idx on jobs (match_score desc);
+create index if not exists jobs_industry_idx on jobs (industry);
 
 -- ---------------------------------------------------------------------------
 -- Module 3: contacts

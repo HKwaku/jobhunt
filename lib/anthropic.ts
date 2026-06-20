@@ -8,7 +8,7 @@ import type {
   TailoredCv,
   InterviewPrep,
 } from "./types";
-import { stripDashes, DEFAULT_MODEL } from "./types";
+import { stripDashes, DEFAULT_MODEL, JOB_INDUSTRIES } from "./types";
 
 let cached: Anthropic | null = null;
 
@@ -125,7 +125,10 @@ Return a JSON object with exactly these keys:
 - "match_score": number 0-100
 - "fit_summary": string (2-3 sentences on why it is or isn't a strong fit)
 - "strengths": string[] (specific matching points)
-- "gaps": string[] (missing or weak requirements)`;
+- "gaps": string[] (missing or weak requirements)
+- "industry": string (classify the hiring firm/role into EXACTLY ONE of: ${JOB_INDUSTRIES.join(
+    ", "
+  )}. Use "Other" only if none of the financial-services categories clearly apply.)`;
   return claudeJson<JobMatch>(system, user, 1000, model);
 }
 

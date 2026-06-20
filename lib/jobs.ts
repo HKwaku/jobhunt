@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase";
 import type { Job, JobStatus, JobMatch } from "./types";
+import { FINANCIAL_SERVICES_INDUSTRIES } from "./types";
 
 export function normalizeJob(row: Record<string, unknown>): Job {
   return {
@@ -11,6 +12,7 @@ export function normalizeJob(row: Record<string, unknown>): Job {
     description: (row.description as string) ?? null,
     url: (row.url as string) ?? null,
     source: (row.source as string) ?? null,
+    industry: (row.industry as string) ?? null,
     match_score: (row.match_score as number) ?? null,
     fit_summary: (row.fit_summary as string) ?? null,
     strengths: (row.strengths as string[]) ?? [],
@@ -27,11 +29,15 @@ export function normalizeJob(row: Record<string, unknown>): Job {
   };
 }
 
+// Special industry filter value meaning "any financial-services sector".
+export const FS_INDUSTRY_FILTER = "Financial Services";
+
 export type JobFilters = {
   status?: string;
   minScore?: number;
   q?: string;
   location?: string;
+  industry?: string;
   sort?: "score" | "date";
 };
 
@@ -47,6 +53,13 @@ export async function listJobs(filters: JobFilters = {}): Promise<Job[]> {
   }
   if (filters.location) {
     query = query.ilike("location", `%${filters.location}%`);
+  }
+  if (filters.industry && filters.industry !== "All") {
+    if (filters.industry === FS_INDUSTRY_FILTER) {
+      query = query.in("industry", FINANCIAL_SERVICES_INDUSTRIES);
+    } else {
+      query = query.eq("industry", filters.industry);
+    }
   }
   if (filters.q) {
     query = query.or(
@@ -170,6 +183,7 @@ export async function updateJobScore(
       fit_summary: match.fit_summary,
       strengths: match.strengths ?? [],
       gaps: match.gaps ?? [],
+      industry: match.industry ?? null,
     })
     .eq("id", id);
   if (error) throw new Error(error.message);

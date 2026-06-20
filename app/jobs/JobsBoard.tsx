@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { Job, TailoredCv, InterviewPrep as InterviewPrepData } from "@/lib/types";
-import { JOB_STATUSES, cvToPlainText } from "@/lib/types";
+import { JOB_STATUSES, JOB_INDUSTRIES, cvToPlainText } from "@/lib/types";
 import { Card, MatchBadgePill, Chip, EmptyState } from "@/components/ui";
 import { inputCls, btnPrimary, btnSecondary, btnGhost } from "@/lib/styles";
 
@@ -30,6 +30,7 @@ export default function JobsBoard({
 }) {
   const [jobs, setJobs] = useState<Job[]>(initial);
   const [searching, setSearching] = useState(false);
+  const [searchingFirms, setSearchingFirms] = useState(false);
   const [rescoring, setRescoring] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<Msg>(null);
@@ -41,6 +42,7 @@ export default function JobsBoard({
   // filters
   const [fStatus, setFStatus] = useState("All");
   const [fMinScore, setFMinScore] = useState("0");
+  const [fIndustry, setFIndustry] = useState("All");
   const [fSort, setFSort] = useState<"score" | "date">("score");
   const [fQuery, setFQuery] = useState("");
 
@@ -60,6 +62,7 @@ export default function JobsBoard({
       const qs = new URLSearchParams();
       if (fStatus !== "All") qs.set("status", fStatus);
       if (fMinScore !== "0") qs.set("minScore", fMinScore);
+      if (fIndustry !== "All") qs.set("industry", fIndustry);
       if (fSort) qs.set("sort", fSort);
       if (fQuery.trim()) qs.set("q", fQuery.trim());
       const res = await fetch(`/api/jobs?${qs.toString()}`);
@@ -71,7 +74,7 @@ export default function JobsBoard({
     } finally {
       setLoading(false);
     }
-  }, [fStatus, fMinScore, fSort, fQuery]);
+  }, [fStatus, fMinScore, fIndustry, fSort, fQuery]);
 
   // Refetch when filters change (debounce the text query).
   useEffect(() => {
@@ -101,6 +104,31 @@ export default function JobsBoard({
       setMsg({ kind: "err", text: (e as Error).message });
     } finally {
       setSearching(false);
+    }
+  }
+
+  async function runFirmSearch() {
+    setMsg(null);
+    setSearchingFirms(true);
+    try {
+      const res = await fetch("/api/jobs/search-firms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: searchLoc }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Firm search failed");
+      setMsg({
+        kind: data.warning ? "warn" : "ok",
+        text:
+          data.warning ||
+          `Searched ${data.firmsSearched} real-estate investment firms · found ${data.found} relevant roles · added ${data.added} new · ${data.skipped} already saved.`,
+      });
+      await refetch();
+    } catch (e) {
+      setMsg({ kind: "err", text: (e as Error).message });
+    } finally {
+      setSearchingFirms(false);
     }
   }
 
@@ -164,6 +192,14 @@ export default function JobsBoard({
             {searching ? "Searching…" : "Run search"}
           </button>
           <button
+            onClick={runFirmSearch}
+            disabled={searchingFirms}
+            className={btnSecondary}
+            title="Search real-estate investment managers by name for in-house technology/transformation roles"
+          >
+            {searchingFirms ? "Searching firms…" : "Search target firms"}
+          </button>
+          <button
             onClick={rescoreAll}
             disabled={rescoring || jobs.length === 0}
             className={btnSecondary}
@@ -214,6 +250,20 @@ export default function JobsBoard({
           <option value="80">Strong (80+)</option>
           <option value="60">Good (60+)</option>
           <option value="40">Partial (40+)</option>
+        </select>
+        <select
+          className={inputCls + " w-auto"}
+          value={fIndustry}
+          onChange={(e) => setFIndustry(e.target.value)}
+          title="Filter by industry/sector"
+        >
+          <option value="All">All industries</option>
+          <option value="Financial Services">Financial services (all)</option>
+          {JOB_INDUSTRIES.map((ind) => (
+            <option key={ind} value={ind}>
+              {ind}
+            </option>
+          ))}
         </select>
         <select
           className={inputCls + " w-auto"}
@@ -904,6 +954,7 @@ function JobRow({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-medium text-zinc-100">{job.title}</h3>
             <MatchBadgePill score={job.match_score} />
+            {job.industry && <Chip tone="muted">{job.industry}</Chip>}
           </div>
           <p className="mt-0.5 text-sm text-zinc-400">
             {[job.company, job.location].filter(Boolean).join(" · ") || "—"}

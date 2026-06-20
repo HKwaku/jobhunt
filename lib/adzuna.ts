@@ -1,14 +1,6 @@
 // Adzuna job search client. https://developer.adzuna.com/
 
-export type AdzunaJob = {
-  externalId: string;
-  title: string;
-  company: string | null;
-  location: string | null;
-  salary: string | null;
-  description: string | null;
-  url: string | null;
-};
+import type { JobListing } from "./types";
 
 export function isAdzunaConfigured(): boolean {
   return Boolean(process.env.ADZUNA_APP_ID && process.env.ADZUNA_APP_KEY);
@@ -18,7 +10,7 @@ function fmtSalary(min?: number, max?: number): string | null {
   if (!min && !max) return null;
   const f = (n: number) =>
     n.toLocaleString("en-GB", { maximumFractionDigits: 0 });
-  if (min && max) return `${f(min)} – ${f(max)}`;
+  if (min && max) return `${f(min)} - ${f(max)}`;
   return f((min ?? max) as number);
 }
 
@@ -33,7 +25,7 @@ export type AdzunaSearchParams = {
 
 export async function searchAdzuna(
   params: AdzunaSearchParams
-): Promise<AdzunaJob[]> {
+): Promise<JobListing[]> {
   const appId = process.env.ADZUNA_APP_ID;
   const appKey = process.env.ADZUNA_APP_KEY;
   if (!appId || !appKey) {
@@ -70,6 +62,7 @@ export async function searchAdzuna(
     salary: fmtSalary(r.salary_min, r.salary_max),
     description: r.description ?? null,
     url: r.redirect_url ?? null,
+    source: "adzuna",
   }));
 }
 

@@ -12,6 +12,7 @@ export async function GET(req: Request) {
       minScore: minScoreRaw ? Number(minScoreRaw) : undefined,
       q: searchParams.get("q") || undefined,
       location: searchParams.get("location") || undefined,
+      industry: searchParams.get("industry") || undefined,
       sort: (searchParams.get("sort") as "score" | "date") || "score",
     });
     return NextResponse.json({ jobs });
