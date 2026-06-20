@@ -5,7 +5,7 @@ import { searchAts, isAtsConfigured } from "./ats";
 import { scoreJobMatch, isAnthropicConfigured } from "./anthropic";
 import { getProfile } from "./profile";
 import type { JobListing, CvProfile } from "./types";
-import { REAL_ESTATE_IM_FIRMS } from "./target-firms";
+import { REAL_ESTATE_IM_FIRMS, TARGET_FIRMS } from "./target-firms";
 import {
   getExistingExternalIds,
   insertJobs,
@@ -247,10 +247,28 @@ function titleHasAnchor(title: string): boolean {
 
 export type FirmSearchResult = RunSearchResult & { firmsSearched: number };
 
-// Search a watchlist of real estate investment managers BY NAME across keyword
-// sources, keeping only technology/transformation-style roles. This targets
-// in-house seats within the investment firm (firms that mostly aren't on ATS
-// boards, so name search is the only way to reach them).
+// The watchlist: real estate IMs plus the broader top financial-services
+// investment firms (IB, PE, hedge funds, asset managers, etc.), de-duped.
+const WATCHLIST_FIRMS: string[] = (() => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const name of [
+    ...REAL_ESTATE_IM_FIRMS,
+    ...TARGET_FIRMS.map((f) => f.name),
+  ]) {
+    const key = name.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(name);
+    }
+  }
+  return out;
+})();
+
+// Search the firm watchlist BY NAME across keyword sources, keeping only
+// technology/transformation-style roles. This targets in-house seats within the
+// investment firm (firms that mostly aren't on ATS boards, so name search is the
+// only way to reach them).
 export async function runFirmWatchlistSearch(
   input: { location?: string; limit?: number } = {}
 ): Promise<FirmSearchResult> {
@@ -268,8 +286,8 @@ export async function runFirmWatchlistSearch(
   const location = input.location?.trim() || prefs?.locations?.[0] || "London";
   const country = process.env.ADZUNA_COUNTRY || "gb";
   const firms = input.limit
-    ? REAL_ESTATE_IM_FIRMS.slice(0, input.limit)
-    : REAL_ESTATE_IM_FIRMS;
+    ? WATCHLIST_FIRMS.slice(0, input.limit)
+    : WATCHLIST_FIRMS;
 
   // Query each firm by name across keyword sources; keep only role-relevant
   // titles. A single firm/source failing must not abort the run.

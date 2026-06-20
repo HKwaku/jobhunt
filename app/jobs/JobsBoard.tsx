@@ -122,7 +122,7 @@ export default function JobsBoard({
         kind: data.warning ? "warn" : "ok",
         text:
           data.warning ||
-          `Searched ${data.firmsSearched} real-estate investment firms · found ${data.found} relevant roles · added ${data.added} new · ${data.skipped} already saved.`,
+          `Searched ${data.firmsSearched} target investment firms · found ${data.found} relevant roles · added ${data.added} new · ${data.skipped} already saved.`,
       });
       await refetch();
     } catch (e) {
@@ -195,7 +195,7 @@ export default function JobsBoard({
             onClick={runFirmSearch}
             disabled={searchingFirms}
             className={btnSecondary}
-            title="Search real-estate investment managers by name for in-house technology/transformation roles"
+            title="Search target investment firms by name for in-house technology/transformation roles"
           >
             {searchingFirms ? "Searching firms…" : "Search target firms"}
           </button>
